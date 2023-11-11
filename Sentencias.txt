@@ -15,11 +15,12 @@ FROM tipo_cliente;
 /*Tipo De Cuenta*/
 CREATE TABLE tipo_cuenta(
 				cuenta_id INTEGER PRIMARY KEY,
-				cuenta_name TEXT NOT NULL
+				cuenta_name TEXT NOT NULL,
+				moneda TEXT NOT NULL
 				);
 
-INSERT INTO tipo_cuenta (cuenta_name)
-VALUES ('Caja de ahorro en pesos'), ('Caja de ahorro en dolares'), ('Cuenta corriente');
+INSERT INTO tipo_cuenta (cuenta_name,moneda)
+VALUES ('Caja de ahorro','Pesos'),('Caja de ahorro','Dolares'),('Cuenta corriente','Pesos'), ('Cuenta corriente','Dolares');
 
 SELECT *
 FROM tipo_cuenta;			
@@ -54,7 +55,7 @@ CREATE TABLE tarjeta(
 				
 /*Agregar 500 tarjetas de credito*/ /*Primera parte*/
 INSERT INTO tarjeta (numero, cvv, tarjeta_id, customer_id)
-VALUES ('6545123547895245',163,1,1); /*Aca agregamos 500 numeros aleatorios de tarjeta y asi con el resto*/
+VALUES ('6545123547895245',163,1,1);
 
 /*Agregar 500 tarjetas de credito*/ /*segunda parte*/
 INSERT INTO tarjeta (cvv,tarjeta_id,customer_id)
@@ -576,7 +577,8 @@ VALUES
   (660,1,498),
   (661,3,499),
   (662,1,500);
- /*Aca agregamos 500 numeros aleatorios de tarjeta y asi con el resto*/
+
+ /*Aca agregamos 500 numeros aleatorios de tarjeta*/
 
 /*Consulta tabla tarjeta*/ 
 SELECT * 
@@ -1098,29 +1100,45 @@ VALUES ('Av Corrientes',1538,'Capital Federal','Buenos Aires'),
 SELECT * 
 FROM direcciones
 
-/*Asignando del lote inicial a empleados, clientes o sucursal de forma aleatoria*/
 /*Empleado*/
+
+/*Agrego el campo direccion_id en clientes,empleado y sucursal*/
+/*empleado*/
+ALTER TABLE empleado
+ADD COLUMN direccion_id INTEGER;
+/*Clientes*/
+ALTER TABLE cliente
+ADD COLUMN direccion_id INTEGER;
+/*Sucursal*/
+ALTER TABLE sucursal
+ADD COLUMN direccion_id INTEGER;
+
+/*Asignando del lote inicial a empleados, clientes o sucursal de forma aleatoria*/
+/*empleado*/
 UPDATE empleado 
-ADD direccion_id = (ABS(RANDOM()) % 501) + 1;
+SET direccion_id = (ABS(RANDOM()) % 501) + 1;
 /*Clientes*/
 UPDATE cliente 
-ADD direccion_id = (ABS(RANDOM()) % 501) + 1;
+SET direccion_id = (ABS(RANDOM()) % 501) + 1;
 /*Sucursal*/
+/*inserto valores aleatoriamente que no se repitan y modifico direccion_id para que sea UNIQUE desde database structure*/
 UPDATE sucursal 
-A direccion_id = (ABS(RANDOM()) % 501) + 1;
+SET direccion_id = (branch_id-1)*5+(ABS(RANDOM()) % 5 + 1);
 
 /*Amplio alcance entidad cuenta  para que identifique el tipo de la misma*/ /*Hay que agregar tipo_cuenta*/ 
 				/*Se agrego la columna modificado la tabla desde database structure*/
+ALTER TABLE cuenta
+ADD COLUMN tipo_de_cuenta INTEGER;
 
 /*Asignar un tipo de cuenta a cada registro de cuenta de forma aleatoria*/
+
 /*Como ya esta creada la columna habria que agregarle los valores con un UPDATE*/
 UPDATE cuenta 
-SET tipo_de_cuenta = abs(random()) % 4 + 1;
+SET tipo_de_cuenta = ABS(RANDOM()) % 3 + 1;
 
 /*Corregir el campo employee_hire_date de la tabla empleado con la fecha en formato YYYY-MM-DD*/
 UPDATE empleado SET employee_hire_date = substr(employee_hire_date, 7, 4) || '-' || substr(employee_hire_date, 4,2) || '-' || substr(employee_hire_date, 1,2);
 
-/*Miedo, musica de tension*/
 /*Consulta tabla empleado*/ 
 SELECT * 
 FROM empleado
@@ -1141,10 +1159,6 @@ FROM tipo_cuenta
 SELECT * 
 FROM cuenta
 
-/*Consulta tabla cuenta*/ 
-SELECT DISTINCT id_direccion 
-FROM sucursal
-
 /*Segunda Problematica*/
 																
 /*Crear una vista con las columnas id, numero sucursal, nombre, apellido, DNI y edad de la tabla cliente calculada a partir de la fecha de nacimiento*/
@@ -1162,42 +1176,43 @@ SELECT
 FROM cliente
 INNER JOIN sucursal ON sucursal.branch_id=cliente.branch_id;
 
+/*mostrar la VIEW*/
+SELECT *
+FROM v_edades;
+
 /*Mostrar las columnas de los clientes, ordenadas por el DNI de menor a mayor y cuya edad sea superior a 40 años*/
-SELECT customer_id, branch_number, customer_name,customer_surname, customer_DNI, CAST(strftime('%Y.%m%d', 'now') - strftime('%Y.%m%d', dob ) as int) AS Edad
-FROM cliente
-INNER JOIN sucursal
-ON cliente.branch_id = sucursal.branch_id
+SELECT *
+FROM v_edades
 WHERE edad>40 
 ORDER BY customer_DNI ASC
 
 /*Mostrar todos los clientes que se llaman “Anne” o “Tyler” ordenados por edad de menor a mayor*/
-SELECT customer_id, branch_number, customer_name,customer_surname, customer_DNI, CAST(strftime('%Y.%m%d', 'now') - strftime('%Y.%m%d', dob ) as int) AS Edad
-FROM cliente
-INNER JOIN sucursal
-ON cliente.branch_id = sucursal.branch_id
+SELECT *
+FROM v_edades
 WHERE customer_name='Tyler' OR customer_name='Anne'
 ORDER BY edad ASC
 
 /*Insertar 5 nuevos clientes en la base de datos y verificar que se haya realizado con éxito la inserción*/
 /*1*/
-INSERT INTO cliente (customer_name, customer_surname, customer_DNI, dob, branch_id)
-VALUES ('Lois', 'Stout', 47730534, '1984-07-07', 80);
+INSERT INTO cliente (customer_name, customer_surname, customer_DNI, dob, branch_id,direccion_id)
+VALUES ('Lois', 'Stout', 47730534, '1984-07-07', 80, 1);
 /*2*/
-INSERT INTO cliente (customer_name, customer_surname, customer_DNI, dob, branch_id)
-VALUES ('Hall', 'Mcconnell',52055464, '1968-04-30', 45);
+INSERT INTO cliente (customer_name, customer_surname, customer_DNI, dob, branch_id,direccion_id)
+VALUES ('Hall', 'Mcconnell',52055464, '1968-04-30', 45, 2);
 /*3*/
-INSERT INTO cliente (customer_name, customer_surname, customer_DNI, dob, branch_id)
-VALUES ('Jin', 'Cooley', 21207908, '1959-08-24', 96);
+INSERT INTO cliente (customer_name, customer_surname, customer_DNI, dob, branch_id,direccion_id)
+VALUES ('Jin', 'Cooley', 21207908, '1959-08-24', 96, 3);
 /*4*/
-INSERT INTO cliente (customer_name, customer_surname, customer_DNI, dob, branch_id)
-VALUES ('Hilel', 'Mclean', 43625213, '1993-03-28',  77);
+INSERT INTO cliente (customer_name, customer_surname, customer_DNI, dob, branch_id,direccion_id)
+VALUES ('Hilel', 'Mclean', 43625213, '1993-03-28',  77, 32);
 /*5*/
-INSERT INTO cliente (customer_name, customer_surname, customer_DNI, dob, branch_id)
-VALUES ('Gabriel', 'Harmon',57063950,'1976-04-01',27);
+INSERT INTO cliente (customer_name, customer_surname, customer_DNI, dob, branch_id,direccion_id)
+VALUES ('Gabriel', 'Harmon',57063950,'1976-04-01',27, 55);
 
 /*Consulta de tabla cliente para verificar la insercion*/
 SELECT *
 FROM cliente
+WHERE customer_id>500;
 
 /*Actualizar 5 clientes recientemente agregados en la base de datos dado que hubo un error en el JSON que traía la información, la sucursal de todos es la 10*/
 UPDATE cliente
@@ -1342,7 +1357,7 @@ ON cliente.branch_id = sucursal.branch_id
 GROUP BY tarjeta_id;
 
 /*Esto es para comprobar y ver que cada columna este bien*/
-SELECT*
+SELECT *
 FROM tarjeta;
 
 /*Obtener el promedio de créditos otorgado por sucursal*/
@@ -1403,7 +1418,7 @@ END;
 /* Restar $100 a las cuentas 10,11,12,13,14*/
 UPDATE cuenta
 SET balance = balance - 100
-WHERE account_id <= 14 AND account_id>=10; /*Asi para las distintas cuentas*/
+WHERE account_id >= 10 AND account_id <= 14; /*Asi para las distintas cuentas*/
 
 /*Mediante índices mejorar la performance la búsqueda de clientes por DNI*/
 CREATE UNIQUE INDEX clientes_x_dni
@@ -1418,10 +1433,11 @@ CREATE TABLE movimientos (
 			tipo_operacion INTEGER NOT NULL DEFAULT 'Transaccion',
 			hora TIME NOT NULL
 			);
-			
+
+/*Funciona si se borra todo lo que está arriba*/			
 /*Mediante el uso de transacciones, hacer una transferencia de 1000$ desde la cuenta 200 a la cuenta 400*/
 /*Registrar el movimiento en la tabla movimientos*/
-BEGIN TRANSACTION;
+BEGIN; --Selecciono desde BEGIN...
 
 UPDATE cuenta
    SET balance = balance - 1000
@@ -1436,22 +1452,18 @@ VALUES(200,'-',1000,datetime('now'));
 
 INSERT INTO movimientos (nro_cuenta,flag,monto,hora) 
 VALUES(400,'+',1000,datetime('now'));
+/*...Hasta aca para correr la instruccion y realizar la transaccion y luego selecciono unicamente ROLLBACK o COMMIT dependiendo
+de lo que quiera hacer*/
 
-COMMIT;
+ROLLBACK;--Selecciono solo ROLLBACK y corro la instrucción si deseo deshacer los cambios
 
+COMMIT; --Selecciono solo COMMIT y corro la instrucción si deseo realizar los cambios 
 
-/*Consulto movimientos*/
+/*Consulto el balance de la cuenta y si es mayor a 0 realizo un COMMIT*/
+/*Si es menor que 0 realizo un ROLLBACK ya que no es posible realizar la transaccion (Por poner un ejemplo)*/
 SELECT *
-FROM movimientos
+FROM cuenta
+WHERE account_id = 200;
 
-/*En caso de no poder realizar la operación de forma completa, realizar un ROLLBACK*/
-BEGIN TRANSACTION;
-
-UPDATE cuenta
-   SET balance = balance - 1000
- WHERE account_id = 400;
-
-INSERT INTO movimientos(nro_cuenta,flag,monto,hora)
-VALUES(400,'-',1000,datetime('now'));
-
-ROLLBACK;
+SELECT * 
+FROM movimientos;
